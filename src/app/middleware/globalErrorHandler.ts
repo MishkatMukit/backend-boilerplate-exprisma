@@ -1,8 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
 import { ZodError } from "zod";
-import { Prisma } from "../../../generated/prisma/client";
-import config from "../../config";
+import { Prisma } from "../../generated/prisma/client";
+import config from "../config";
 import {AppError} from "../utils/appError";
 
 export const globalErrorHandler = async (
@@ -59,16 +59,16 @@ export const globalErrorHandler = async (
 		errorMessage = err.message;
 	}
 
+	const isDevelopment = config.node_env === "development";
+	// 4xx messages are deliberate and safe to show; hide 5xx details outside development
+	const exposeMessage = isDevelopment || statusCode < 500;
+
 	res.status(statusCode).json({
 		success: false,
 		statusCode,
-		name:
-			config.node_env === "development" ? errorName : "Internal Server Error",
-		message:
-			config.node_env === "development"
-				? errorMessage
-				: "Internal Server Error",
-		error: config.node_env === "development" ? err : undefined,
-		stack: config.node_env === "development" ? err.stack : undefined,
+		name: exposeMessage ? errorName : "Internal Server Error",
+		message: exposeMessage ? errorMessage : "Internal Server Error",
+		error: isDevelopment ? err : undefined,
+		stack: isDevelopment ? err.stack : undefined,
 	});
 };
